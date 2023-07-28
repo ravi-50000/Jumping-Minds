@@ -80,6 +80,8 @@ WSGI_APPLICATION = 'jumping_minds.wsgi.application'
 jumping_minds_db_config = os.getenv('JUMPING_MINDS_DB_CONFIG')
 jumping_minds_db_config = dj_database_url.parse(jumping_minds_db_config)
 
+PAGE_LIMIT = os.getenv('PAGE_LIMIT')
+
 DATABASES = {
     'default': jumping_minds_db_config
 }
