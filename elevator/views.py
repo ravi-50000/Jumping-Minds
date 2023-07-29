@@ -4,7 +4,9 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
-from elevator.utils import get_paginated_results
+from elevator.utils import get_paginated_results, get_mail_body
+from elevator.tasks import send_email
+from jumping_minds import settings
 
 # Create your views here.
 class CreateElevatorView(viewsets.ModelViewSet):
@@ -44,7 +46,6 @@ class CreateElevatorView(viewsets.ModelViewSet):
             "page_context": page_context,
             "requests_list": result_list
         }
-        
         return Response({'result': result})
     
     @action(detail=False, methods=['post'], url_path='next_destination')
@@ -115,6 +116,13 @@ class CreateElevatorView(viewsets.ModelViewSet):
         if elevator.is_elevator_working == False:
             return Response({'message': "Elevator Already in Not Working State"})
         elevator.is_elevator_working = False                            #Mark Elevator ‘x’ as not working
+        subject = "[CRITICAL] Elevator Not Working"
+        current_floor = elevator.current_floor
+        message = get_mail_body(elevator_number, current_floor)
+        from_email = settings.EMAIL_HOST_USER
+        recipient_list = settings.RECEPIENT_LIST
+        send_email.delay(subject, message, from_email, recipient_list)
+        print('After Send Mail Function')
         elevator.save()
         return Response({'message': "Elevator Marked as Not Working"})
     

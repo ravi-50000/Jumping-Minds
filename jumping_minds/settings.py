@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 
 import os
 import dj_database_url
+import redis
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'elevator',
     'rest_framework',
+    'django_celery_results'
 ]
 
 MIDDLEWARE = [
@@ -104,6 +106,39 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
+REDIS_HOST = os.getenv('REDIS_HOST')
+REDIS_PORT = os.getenv('REDIS_PORT')
+
+# Create a Redis connection
+redis_connection = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT)
+
+# Add the Redis connection to Django's cache settings
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}'
+    }
+}
+CACHE_TTL = int(os.getenv('CACHE_TTL'))
+
+
+# Celery Config
+CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}'
+CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+# Mail Config
+RECEPIENT_LIST = ['ravitejaramoju@gmail.com']
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = os.getenv('FROM_EMAIL')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_USE_SSL = False
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/

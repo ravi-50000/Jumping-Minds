@@ -25,3 +25,17 @@ def get_paginated_results(data_list, page_number):
 
     except Exception as e:
         raise e
+
+
+def get_mail_body(elevator_number, current_floor):
+    message = f'''This is an automated notification to inform you that the elevator in the Building is currently not working.
+
+    Elevator Details:
+    - Elevator Number: {elevator_number}
+    - Current Floor: {current_floor}
+
+    Please take immediate action to address the issue and resolve the elevator's functionality.
+
+    Thank you for your attention to this matter.'''
+    
+    return message
