@@ -17,6 +17,10 @@
 
 5. **Postgresql** : PostgreSQL is an advanced, open-source, and powerful relational database management system. Postgresql suits for high traffic system like elevator management.(Used pgAdmin for testing)
 
+6. **Celery** : Celery is a asynchronous task queue library, used to perform Async tasks.
+
+7. **Redis** : Redis is used as a message broker, load tasks into the queue. It will communicate with celery apps and workers.
+
 
 
 **API Contract** : 9 Api's are created(4,8 not addressed in problem statement). 8,9 can be merged but to make it more concise created extra api(8)
@@ -185,7 +189,7 @@
 
 9. **Mark Elevator Not Working**:
 
-   Description: Api will mark the given Elevator as Not Working.
+   Description: Api will mark the given Elevator as not working and sends mail to the given input list of users via celery & redis.
 
    Method: POST
 
@@ -254,13 +258,19 @@
 
 
 
-**Testing**: We can test all the Api's in Postman.
+**Testing**: 
 
-Ex:
+1. We can test all the Api's in Postman.
+   
+   Ex:
 
-<img width="1280" alt="Screenshot 2023-07-29 at 4 05 37 PM" src="https://github.com/ravi-50000/Jumping-Minds/assets/55268871/f6749bb1-f0a2-4291-98b0-a9d4c6f8bd16">
+   <img width="1280" alt="Screenshot 2023-07-29 at 4 05 37 PM" src="https://github.com/ravi-50000/Jumping-Minds/assets/55268871/f6749bb1-f0a2-4291-98b0-a9d4c6f8bd16">
 
 
+3. Tested celery results with celery worker command.
 
+   Command : celery -A jumping_minds worker --loglevel=info
 
-**Future Task:** Will send mail to the Admin or Selected Persons via Async Programming(Celery) when Elevator 'x' is not working and Caching using Redis.
+   Ex:
+
+   <img width="1047" alt="Screenshot 2023-07-30 at 3 09 56 AM" src="https://github.com/ravi-50000/Jumping-Minds/assets/55268871/39dfb94d-571f-47e1-a7cb-756e3f8352ed">
