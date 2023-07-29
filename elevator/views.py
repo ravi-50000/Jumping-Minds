@@ -9,7 +9,7 @@ from elevator.utils import get_paginated_results
 # Create your views here.
 class CreateElevatorView(viewsets.ModelViewSet):
     
-    @action(detail=False, methods=['post'], url_path='create_elevations')
+    @action(detail=False, methods=['post'], url_path='create_elevators')
     def create_elevations(self, request):
         serializer = CreateElevatorRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)            #Serialize the input if not valid throw exception for all api's
@@ -17,17 +17,17 @@ class CreateElevatorView(viewsets.ModelViewSet):
         number_of_elevations = validated_data.get('number_of_elevators')
         create_elevators = [Elevator() for _ in range(number_of_elevations)]   #Create 'n' Elevators
         Elevator.objects.bulk_create(create_elevators)                         #Use Bulk Create to reduce DB calls
-        return Response({'message': 'Successfully created Elevations'})
+        return Response({'message': 'Successfully created Elevators'})
     
-    @action(detail=False, methods=['post'], url_path='get_requests')
-    def get_requests(self, request):
+    @action(detail=False, methods=['post'], url_path='get_elevator_requests')
+    def get_elevator_requests(self, request):
         serializer = ElevatorRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
         elevator_number = validated_data.get('elevator_number')
         page_number = validated_data.get('page_number')
         elevator = get_object_or_404(Elevator, id=elevator_number)     #Get the Object -> If yes process else throw exception with status code
-        requests = Requests.objects.filter(elevator=elevator)
+        requests = Requests.objects.filter(elevator_id=elevator.id)
         
         if len(requests) == 0:
             return Response({'message':'No Requests for this Elevator till now'})   #If No requests made to the Elevator 'x'
@@ -42,7 +42,7 @@ class CreateElevatorView(viewsets.ModelViewSet):
         
         result = {
             "page_context": page_context,
-            "reviews": result_list
+            "requests_list": result_list
         }
         
         return Response({'result': result})
@@ -55,7 +55,7 @@ class CreateElevatorView(viewsets.ModelViewSet):
         elevator_number = validated_data.get('elevator_number')
         elevator = get_object_or_404(Elevator, id=elevator_number)
         
-        request = Requests.objects.filter(elevator=elevator).order_by('-created_at').first()   #Get the Latest Request Entry
+        request = Requests.objects.filter(elevator_id=elevator.id).order_by('-created_at').first()   #Get the Latest Request Entry
         if request is None:
             return Response({'message':'There is No Next Destination for this Elevator'})      #If No Entry
         if elevator.current_floor == request.destination_floor:
@@ -72,7 +72,7 @@ class CreateElevatorView(viewsets.ModelViewSet):
         if elevator.is_elevator_working == False:
             return Response({'message': "Oops! Elevator is not working"})   
         
-        request = Requests.objects.filter(elevator=elevator).order_by('-created_at').first()
+        request = Requests.objects.filter(elevator_id=elevator.id).order_by('-created_at').first()
         if request is None or request.destination_floor == elevator.current_floor:
             return Response({'message': "Elevator is Stable"})
         return Response({'message': "Moving Up" if request.is_elevator_moving_up == True else "Moving Down"})
@@ -103,7 +103,7 @@ class CreateElevatorView(viewsets.ModelViewSet):
             is_elevator_moving_up = True if destination_floor>current_floor else False,
         )
 
-        return Response({'message': "Successfully Created Request for Elevation"})
+        return Response({'message': "Successfully Created Request for Elevator"})
     
     @action(detail=False, methods=['post'], url_path='mark_elevator_not_working')
     def mark_elevator_not_working(self, request):
