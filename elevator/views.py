@@ -1,4 +1,4 @@
-from elevator.serializers import CreateElevatorRequestSerializer, ElevatorRequestSerializer, ElevatorRequestResponseSerializer, ElevatorNextDestinationSerializer, ElevatorMovingUpOrDownSerializer
+from elevator.serializers import CreateElevatorRequestSerializer, ElevatorRequestSerializer, ElevatorRequestResponseSerializer, ElevatorNextDestinationSerializer, ElevatorMovingUpOrDownSerializer, SaveElevatorRequestSerializer, ElevatorDestinationSerializer, ElevatorOpenOrCloseDoorSerializer, ElevatorNotWorkingSerializer, ElevatorWorkingSerializer
 from elevator.models import Elevator, Requests
 from rest_framework import viewsets
 from rest_framework.response import Response
@@ -69,7 +69,109 @@ class CreateElevatorView(viewsets.ModelViewSet):
         validated_data = serializer.validated_data
         elevator_number = validated_data.get('elevator_number')
         elevator = get_object_or_404(Elevator, id=elevator_number)
+        if elevator.is_elevator_working == False:
+            return Response({'message': "Oops! Elevator is not working"})   
+        
         request = Requests.objects.filter(elevator=elevator).order_by('-created_at').first()
         if request is None or request.destination_floor == elevator.current_floor:
             return Response({'message': "Elevator is Stable"})
         return Response({'message': "Moving Up" if request.is_elevator_moving_up == True else "Moving Down"})
+
+    @action(detail=False, methods=['post'], url_path='save_elevator_request')
+    def save_elevator_request(self, request):
+        serializer = SaveElevatorRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+        elevator_number = validated_data.get('elevator_number')
+        current_floor = validated_data.get('current_floor')
+        destination_floor = validated_data.get('destination_floor')
+        elevator = get_object_or_404(Elevator, id=elevator_number)
+        
+        if elevator.is_elevator_working == False:
+            return Response({'message': "Oops! Elevator is not working"})     #Before Saving the Request Check if Elevator is Healthy or Not
+        
+        if current_floor == destination_floor:
+            return Response({'message': "Current Floor & Destination Floor Should not be Same"})
+        
+        if not current_floor == elevator.current_floor:
+            return Response({'message': f"Elevator Should Start from Floor: {elevator.current_floor}"})
+        
+        Requests.objects.create(
+            elevator = elevator,
+            source_floor = current_floor,
+            destination_floor = destination_floor,
+            is_elevator_moving_up = True if destination_floor>current_floor else False,
+        )
+
+        return Response({'message': "Successfully Created Request for Elevation"})
+    
+    @action(detail=False, methods=['post'], url_path='mark_elevator_not_working')
+    def mark_elevator_not_working(self, request):
+        serializer = ElevatorNotWorkingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+        elevator_number = validated_data.get('elevator_number')
+        elevator = get_object_or_404(Elevator, id=elevator_number)
+        if elevator.is_elevator_working == False:
+            return Response({'message': "Elevator Already in Not Working State"})
+        elevator.is_elevator_working = False                            #Mark Elevator ‘x’ as not working
+        elevator.save()
+        return Response({'message': "Elevator Marked as Not Working"})
+    
+    @action(detail=False, methods=['post'], url_path='open_or_close_the_door')
+    def open_or_close_the_door(self, request):
+        serializer = ElevatorOpenOrCloseDoorSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+        elevator_number = validated_data.get('elevator_number')
+        open_door = validated_data.get('open_door')
+        elevator = get_object_or_404(Elevator, id=elevator_number)
+        
+        if elevator.is_elevator_working == False:
+            return Response({'message': "Oops! Elevator is not working"})         #Before Opening/Closing the Door Check if Elevator is Healthy or Not
+        
+        if open_door == True:
+            if elevator.is_door_opened == True:
+                return Response({'message': "Elevator Door Already Opened"})
+            
+            elevator.is_door_opened = True
+            elevator.is_door_closed = False
+        else:
+            if elevator.is_door_closed == True:
+                return Response({'message': "Elevator Door Already Closed"})
+            
+            elevator.is_door_closed = True
+            elevator.is_door_opened = False
+            
+        elevator.save()
+        return Response({'message': "Elevator Door Opened" if open_door == True else "Elevator Door Closed"})
+    
+    @action(detail=False, methods=['post'], url_path='reached_elevator_destination')  #Extra API -> Update Current Floor if reached Destination
+    def reached_elevator_destination(self, request):
+        serializer = ElevatorDestinationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+        elevator_number = validated_data.get('elevator_number')
+        destination_floor = validated_data.get('destination_floor')
+        id = validated_data.get('id')
+        elevator = get_object_or_404(Elevator, id=elevator_number)
+        request = get_object_or_404(Requests, elevator=elevator, id=id)
+        if not request.destination_floor == destination_floor:
+            return Response({'message': "Given Wrong Destination Floor"})
+        elevator.current_floor = destination_floor
+        elevator.save()
+        
+        return Response({'message': "Succesfully Reached Destination"})
+
+    @action(detail=False, methods=['post'], url_path='mark_elevator_working')    #Extra API -> Mark Elevator 'x' as Working
+    def mark_elevator_working(self, request):
+        serializer = ElevatorWorkingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+        elevator_number = validated_data.get('elevator_number')
+        elevator = get_object_or_404(Elevator, id=elevator_number)
+        if elevator.is_elevator_working == True:
+            return Response({'message': "Elevator Already in Working State"})
+        elevator.is_elevator_working = True                            #Mark Elevator ‘x’ as working
+        elevator.save()
+        return Response({'message': "Elevator Marked as Working"})
