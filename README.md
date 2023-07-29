@@ -263,4 +263,4 @@ Ex:
 
 
 
-**Future Task:** Will send mail to the Admin or Selected Persons via Async Programming(Celery) when Elevator 'x' is not working.
+**Future Task:** Will send mail to the Admin or Selected Persons via Async Programming(Celery) when Elevator 'x' is not working and Caching using Redis.
